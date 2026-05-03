@@ -2,3 +2,6 @@
 *.zip
 dev*.out
 dev*.err
+node_modules/
+playwright-report/
+test-results/

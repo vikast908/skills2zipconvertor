@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Convert .skill files to .zip files locally in your browser.">
+  <meta property="og:title" content=".skill to .zip Converter">
+  <meta property="og:description" content="Upload one or more .skill files and download ZIP copies without uploading files to a server.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>.skill to .zip Converter</title>
   <style>
     :root {
@@ -17,6 +22,8 @@
       --accent-soft: #e4f4ed;
       --danger: #b42318;
       --danger-soft: #fde8e4;
+      --info: #245f8f;
+      --info-soft: #e6f0f8;
       --shadow: 0 18px 60px rgba(24, 35, 29, 0.12);
     }
 
@@ -68,6 +75,20 @@
       line-height: 1.6;
     }
 
+    .privacy-note {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      margin-top: 18px;
+      padding: 8px 10px;
+      border: 1px solid #cbded3;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      background: rgba(228, 244, 237, 0.72);
+      font-size: 0.94rem;
+      font-weight: 700;
+    }
+
     .intro {
       margin-bottom: 0;
     }
@@ -97,6 +118,12 @@
       color: var(--accent-dark);
       border-color: #b8d8ca;
       background: var(--accent-soft);
+    }
+
+    .step.is-complete {
+      color: var(--accent-dark);
+      border-color: #cbded3;
+      background: #f4fbf7;
     }
 
     .converter {
@@ -182,6 +209,10 @@
       justify-content: center;
       gap: 10px;
       margin-top: 26px;
+    }
+
+    .secondary-actions {
+      margin-top: 12px;
     }
 
     button,
@@ -302,9 +333,31 @@
       font-weight: 700;
     }
 
+    .progress {
+      display: none;
+      height: 8px;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dde8e1;
+    }
+
+    .progress.is-visible {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 180ms ease;
+    }
+
     button:disabled {
       cursor: not-allowed;
       opacity: 0.45;
+      transform: none;
     }
 
     input[type="file"] {
@@ -339,6 +392,13 @@
       background: #fff8f6;
     }
 
+    .file-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
     .converted-label {
       display: inline-flex;
       align-items: center;
@@ -357,6 +417,11 @@
     .converted-label.error-label {
       color: var(--danger);
       background: var(--danger-soft);
+    }
+
+    .converted-label.info-label {
+      color: var(--info);
+      background: var(--info-soft);
     }
 
     .file-name {
@@ -379,6 +444,27 @@
 
     .status.error {
       color: var(--danger);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      display: none;
+      max-width: min(360px, calc(100% - 36px));
+      padding: 12px 14px;
+      border: 1px solid #b8d8ca;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      background: #f4fbf7;
+      box-shadow: 0 14px 40px rgba(24, 35, 29, 0.16);
+      font-weight: 700;
+    }
+
+    .toast.is-visible {
+      display: block;
+      animation: slideIn 160ms ease-out;
     }
 
     @keyframes slideIn {
@@ -418,6 +504,22 @@
       .file-row {
         grid-template-columns: 1fr;
       }
+
+      .file-actions {
+        justify-content: stretch;
+      }
+
+      .file-actions button {
+        flex: 1 1 140px;
+      }
+
+      .download-all-button.is-visible {
+        position: sticky;
+        bottom: 12px;
+        z-index: 3;
+        width: 100%;
+        box-shadow: 0 12px 28px rgba(24, 35, 29, 0.18);
+      }
     }
   </style>
 </head>
@@ -427,6 +529,7 @@
       <header class="page-header intro" aria-labelledby="page-title">
         <h1 id="page-title">.skill to .zip</h1>
         <p>Upload one or more .skill files. They will be converted locally into .zip files, ready to download.</p>
+        <div class="privacy-note">Files stay on your device. Nothing is uploaded.</div>
       </header>
 
       <section class="converter" aria-label=".skill to .zip converter">
@@ -436,7 +539,7 @@
           <div id="stepDownload" class="step">3. Download</div>
         </div>
 
-        <div id="dropZone" class="drop-zone">
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Open file picker" aria-describedby="dropHelp">
           <div>
             <div class="upload-icon" aria-hidden="true">ZIP</div>
             <strong id="dropTitle">Upload .skill files</strong>
@@ -445,6 +548,9 @@
               <label class="file-button" for="fileInput">Upload .skill files</label>
               <button id="downloadAll" class="primary download-all-button" type="button" disabled>Download all ZIPs</button>
               <button id="clearFiles" class="secondary reset-button" type="button" disabled>Upload new files</button>
+            </div>
+            <div class="actions secondary-actions">
+              <button id="sampleSkill" class="secondary" type="button">Try sample .skill</button>
             </div>
             <input id="fileInput" type="file" accept=".skill" multiple>
           </div>
@@ -457,12 +563,16 @@
             </div>
             <div id="fileCount" class="file-count">0 files</div>
           </div>
+          <div id="progress" class="progress" aria-hidden="true">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
           <div id="fileList" class="file-list"></div>
         </div>
         <div id="status" class="status">No files selected.</div>
       </section>
     </div>
   </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
     const dropZone = document.querySelector("#dropZone");
@@ -481,9 +591,18 @@
     const stepUpload = document.querySelector("#stepUpload");
     const stepConvert = document.querySelector("#stepConvert");
     const stepDownload = document.querySelector("#stepDownload");
+    const sampleSkill = document.querySelector("#sampleSkill");
+    const toast = document.querySelector("#toast");
+    const progress = document.querySelector("#progress");
+    const progressBar = document.querySelector("#progressBar");
 
     let selectedFiles = [];
     let invalidFiles = [];
+    let toastTimer;
+
+    function fileKey(file) {
+      return `${file.name}:${file.size}:${file.lastModified}`;
+    }
 
     function toZipName(fileName) {
       return fileName.replace(/\.skill$/i, "") + ".zip";
@@ -505,7 +624,9 @@
 
     function setStep(state) {
       stepUpload.classList.toggle("is-active", state === "upload");
+      stepUpload.classList.toggle("is-complete", state === "convert" || state === "download");
       stepConvert.classList.toggle("is-active", state === "convert");
+      stepConvert.classList.toggle("is-complete", state === "download");
       stepDownload.classList.toggle("is-active", state === "download");
     }
 
@@ -526,46 +647,83 @@
       dropHelp.textContent = "Drop .skill files here or upload one or multiple files.";
     }
 
+    function showToast(message) {
+      window.clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      toastTimer = window.setTimeout(() => {
+        toast.classList.remove("is-visible");
+      }, 2200);
+    }
+
+    function setProgress(value) {
+      const visible = value > 0 && value < 100;
+      progress.classList.toggle("is-visible", visible);
+      progressBar.style.width = `${value}%`;
+    }
+
+    function createSampleSkill() {
+      const emptyZip = new Uint8Array([
+        0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+      ]);
+      return new File([emptyZip], "sample.skill", {
+        type: "application/octet-stream",
+        lastModified: 1
+      });
+    }
+
     async function addFiles(files) {
       status.classList.remove("error");
       status.textContent = "Converting...";
+      setProgress(15);
       setStep("convert");
       const allFiles = Array.from(files);
       const incoming = allFiles.filter((file) => file.name.toLowerCase().endsWith(".skill"));
       const wrongExtension = allFiles
         .filter((file) => !file.name.toLowerCase().endsWith(".skill"))
-        .map((file) => ({ file, reason: "Upload .skill files only." }));
+        .map((file) => ({ key: fileKey(file), file, reason: "Upload .skill files only." }));
 
       if (!incoming.length) {
-        selectedFiles = [];
-        invalidFiles = wrongExtension;
+        invalidFiles = [...invalidFiles, ...wrongExtension];
         renderFiles();
         status.textContent = wrongExtension.length
           ? `${wrongExtension[0].file.name} was skipped. Upload .skill files only.`
           : "Choose files ending in .skill.";
         status.classList.add("error");
-        setStep("upload");
+        setStep(selectedFiles.length ? "download" : "upload");
+        setProgress(0);
         return;
       }
 
       const checked = [];
       const invalidArchives = [];
+      let duplicateCount = 0;
       for (const file of incoming) {
-        if (await isZipArchive(file)) {
-          checked.push(file);
+        const key = fileKey(file);
+        const duplicate = selectedFiles.some((entry) => entry.key === key) ||
+          checked.some((entry) => entry.key === key);
+
+        if (duplicate) {
+          duplicateCount += 1;
+        } else if (await isZipArchive(file)) {
+          checked.push({ key, file });
         } else {
-          invalidArchives.push({ file, reason: "This .skill file is not a valid ZIP archive." });
+          invalidArchives.push({ key, file, reason: "This .skill file is not a valid ZIP archive." });
         }
       }
 
-      selectedFiles = checked;
-      invalidFiles = [...wrongExtension, ...invalidArchives];
+      selectedFiles = [...selectedFiles, ...checked];
+      invalidFiles = [...invalidFiles, ...wrongExtension, ...invalidArchives];
+      setProgress(70);
       renderFiles();
 
-      if (!checked.length) {
+      if (!selectedFiles.length) {
         status.textContent = "No selected .skill files could be converted.";
         status.classList.add("error");
         setStep("upload");
+        setProgress(0);
         return;
       }
 
@@ -573,9 +731,13 @@
       setDropCopy("converted");
       converter.classList.add("has-files");
       const skipped = invalidFiles.length;
+      const duplicateText = duplicateCount ? ` ${duplicateCount} duplicate file(s) ignored.` : "";
       status.textContent = skipped
-        ? `Converted ${checked.length} file(s) to ZIP. ${skipped} file(s) need attention.`
-        : `Converted ${checked.length} file(s) to ZIP.`;
+        ? `Converted ${checked.length} new file(s) to ZIP. ${skipped} file(s) need attention.${duplicateText}`
+        : `Converted ${checked.length} new file(s) to ZIP.${duplicateText}`;
+      setProgress(100);
+      window.setTimeout(() => setProgress(0), 250);
+      showToast("Conversion complete.");
     }
 
     function renderFiles() {
@@ -593,7 +755,8 @@
         : "Upload a valid .skill file to continue.";
       fileCount.textContent = `${selectedFiles.length} converted`;
 
-      for (const file of selectedFiles) {
+      for (const entry of selectedFiles) {
+        const file = entry.file;
         const row = document.createElement("div");
         row.className = "file-row";
 
@@ -617,13 +780,24 @@
         button.addEventListener("click", () => {
           downloadZip(file);
           button.textContent = "Downloaded";
+          showToast(`${toZipName(file.name)} downloaded.`);
           window.setTimeout(() => {
             button.textContent = "Download ZIP";
           }, 1400);
         });
 
+        const removeButton = document.createElement("button");
+        removeButton.className = "secondary";
+        removeButton.type = "button";
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", () => removeFile(entry.key, "valid"));
+
+        const actions = document.createElement("div");
+        actions.className = "file-actions";
+        actions.append(button, removeButton);
+
         details.append(converted, name, meta);
-        row.append(details, button);
+        row.append(details, actions);
         fileList.append(row);
       }
 
@@ -644,8 +818,14 @@
         meta.className = "file-meta";
         meta.textContent = item.reason;
 
+        const removeButton = document.createElement("button");
+        removeButton.className = "secondary";
+        removeButton.type = "button";
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", () => removeFile(item.key, "invalid"));
+
         details.append(label, name, meta);
-        row.append(details);
+        row.append(details, removeButton);
         fileList.append(row);
       }
 
@@ -653,6 +833,28 @@
       downloadAll.classList.toggle("is-visible", selectedFiles.length > 1);
       clearFiles.disabled = totalRows === 0;
       clearFiles.classList.toggle("is-visible", totalRows > 0);
+    }
+
+    function removeFile(key, type) {
+      if (type === "valid") {
+        selectedFiles = selectedFiles.filter((entry) => entry.key !== key);
+      } else {
+        invalidFiles = invalidFiles.filter((entry) => entry.key !== key);
+      }
+
+      renderFiles();
+      if (selectedFiles.length || invalidFiles.length) {
+        setStep(selectedFiles.length ? "download" : "upload");
+        setDropCopy(selectedFiles.length ? "converted" : "upload");
+        status.classList.toggle("error", !selectedFiles.length && invalidFiles.length > 0);
+        status.textContent = selectedFiles.length
+          ? `Converted ${selectedFiles.length} file(s) to ZIP.`
+          : "Upload a valid .skill file to continue.";
+      } else {
+        clearFiles.click();
+      }
+
+      showToast("File removed.");
     }
 
     function downloadZip(file) {
@@ -668,11 +870,16 @@
 
     fileInput.addEventListener("change", (event) => addFiles(event.target.files));
 
+    sampleSkill.addEventListener("click", () => {
+      addFiles([createSampleSkill()]);
+    });
+
     downloadAll.addEventListener("click", () => {
-      for (const file of selectedFiles) {
-        downloadZip(file);
+      for (const entry of selectedFiles) {
+        downloadZip(entry.file);
       }
       downloadAll.textContent = "Downloaded all";
+      showToast("All ZIP files downloaded.");
       window.setTimeout(() => {
         downloadAll.textContent = "Download all ZIPs";
       }, 1400);
@@ -688,6 +895,13 @@
       converter.classList.remove("has-files");
       setDropCopy("upload");
       setStep("upload");
+    });
+
+    dropZone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
     });
 
     for (const eventName of ["dragenter", "dragover"]) {
