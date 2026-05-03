@@ -4,12 +4,6 @@ A small browser-only page for converting `.skill` files into `.zip` downloads.
 
 The conversion runs locally in the browser. Files are not uploaded to a server; the page validates that the selected `.skill` file is ZIP-backed, then downloads the same archive contents with a `.zip` extension.
 
-## Live page
-
-After GitHub Pages finishes deploying, the converter will be available at:
-
-https://vikast908.github.io/skills2zipconvertor/
-
 ## Features
 
 - Upload one or multiple `.skill` files
