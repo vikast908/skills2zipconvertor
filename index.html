@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>.skill to .zip Converter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f2;
+      --panel: #ffffff;
+      --ink: #1b1f23;
+      --muted: #69707a;
+      --line: #d9ded6;
+      --accent: #1f7a5a;
+      --accent-dark: #155d44;
+      --accent-soft: #e4f4ed;
+      --danger: #b42318;
+      --danger-soft: #fde8e4;
+      --shadow: 0 18px 60px rgba(24, 35, 29, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(31, 122, 90, 0.12), transparent 38%),
+        linear-gradient(315deg, rgba(22, 82, 128, 0.1), transparent 34%),
+        var(--bg);
+    }
+
+    main {
+      width: min(1040px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0;
+    }
+
+    .layout {
+      display: grid;
+      gap: 24px;
+      min-height: calc(100vh - 112px);
+      align-content: center;
+      justify-items: center;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(2.4rem, 8vw, 5.6rem);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .page-header {
+      width: min(720px, 100%);
+    }
+
+    .intro p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.6;
+    }
+
+    .intro {
+      margin-bottom: 0;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 24px 0 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step {
+      min-height: 40px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #f8faf6;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .step.is-active {
+      color: var(--accent-dark);
+      border-color: #b8d8ca;
+      background: var(--accent-soft);
+    }
+
+    .converter {
+      width: min(720px, 100%);
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .drop-zone {
+      display: grid;
+      place-items: center;
+      min-height: 390px;
+      padding: 38px;
+      margin-top: 18px;
+      border: 3px dashed #98aa9f;
+      border-radius: 8px;
+      background: #fbfcf9;
+      text-align: center;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, min-height 180ms ease;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background: #f4faf6;
+    }
+
+    .drop-zone.is-dragging {
+      border-color: var(--accent);
+      background: #eef8f3;
+      box-shadow: inset 0 0 0 6px rgba(31, 122, 90, 0.08);
+    }
+
+    .converter.has-files .drop-zone {
+      min-height: 170px;
+      padding: 24px;
+      border-style: solid;
+      background: #f8faf6;
+    }
+
+    .converter.has-files .upload-icon {
+      width: 54px;
+      height: 54px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .converter.has-files .drop-zone strong {
+      font-size: 1.15rem;
+    }
+
+    .upload-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 92px;
+      height: 92px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .drop-zone strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: clamp(1.45rem, 4vw, 2.2rem);
+      line-height: 1.1;
+    }
+
+    .drop-zone span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 26px;
+    }
+
+    button,
+    .file-button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .file-button {
+      min-height: 56px;
+      padding: 0 28px;
+      font-size: 1.08rem;
+    }
+
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    button:hover,
+    .file-button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible,
+    .file-button:focus-visible {
+      outline: 3px solid rgba(31, 122, 90, 0.28);
+      outline-offset: 3px;
+    }
+
+    .file-button:hover,
+    .file-button:focus-visible,
+    button.primary:hover,
+    button.primary:focus-visible {
+      background: var(--accent-dark);
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: #e8ece6;
+    }
+
+    button.secondary:hover,
+    button.secondary:focus-visible {
+      background: #dce3da;
+    }
+
+    button.primary {
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .download-all-button {
+      display: none;
+    }
+
+    .reset-button {
+      display: none;
+    }
+
+    .download-all-button.is-visible,
+    .reset-button.is-visible {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-panel {
+      display: none;
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #b8d8ca;
+      border-radius: 8px;
+      background: #f4fbf7;
+      animation: slideIn 180ms ease-out;
+    }
+
+    .result-panel.is-visible {
+      display: block;
+    }
+
+    .result-header {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .result-title {
+      margin: 0 0 4px;
+      color: var(--accent-dark);
+      font-size: 1.2rem;
+    }
+
+    .result-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .file-count {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .file-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 54px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      animation: slideIn 180ms ease-out;
+    }
+
+    .file-row.error-row {
+      border-color: #f3b2aa;
+      background: #fff8f6;
+    }
+
+    .converted-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      margin-bottom: 8px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .converted-label.error-label {
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .file-name {
+      overflow-wrap: anywhere;
+      font-weight: 700;
+    }
+
+    .file-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      min-height: 22px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 780px) {
+      main {
+        padding: 28px 0;
+      }
+
+      .converter {
+        padding: 18px;
+      }
+
+      .drop-zone {
+        min-height: 330px;
+        padding: 28px 20px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .result-header {
+        display: grid;
+      }
+
+      .file-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="layout">
+      <header class="page-header intro" aria-labelledby="page-title">
+        <h1 id="page-title">.skill to .zip</h1>
+        <p>Upload one or more .skill files. They will be converted locally into .zip files, ready to download.</p>
+      </header>
+
+      <section class="converter" aria-label=".skill to .zip converter">
+        <div class="steps" aria-label="Conversion steps">
+          <div id="stepUpload" class="step is-active">1. Upload</div>
+          <div id="stepConvert" class="step">2. Convert</div>
+          <div id="stepDownload" class="step">3. Download</div>
+        </div>
+
+        <div id="dropZone" class="drop-zone">
+          <div>
+            <div class="upload-icon" aria-hidden="true">ZIP</div>
+            <strong id="dropTitle">Upload .skill files</strong>
+            <span id="dropHelp">Drop .skill files here or upload one or multiple files.</span>
+            <div class="actions">
+              <label class="file-button" for="fileInput">Upload .skill files</label>
+              <button id="downloadAll" class="primary download-all-button" type="button" disabled>Download all ZIPs</button>
+              <button id="clearFiles" class="secondary reset-button" type="button" disabled>Upload new files</button>
+            </div>
+            <input id="fileInput" type="file" accept=".skill" multiple>
+          </div>
+        </div>
+        <div id="resultPanel" class="result-panel" aria-live="polite">
+          <div class="result-header">
+            <div>
+              <h2 id="resultTitle" class="result-title">Converted to ZIP</h2>
+              <p id="resultCopy" class="result-copy">Your ZIP is ready to download.</p>
+            </div>
+            <div id="fileCount" class="file-count">0 files</div>
+          </div>
+          <div id="fileList" class="file-list"></div>
+        </div>
+        <div id="status" class="status">No files selected.</div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const dropZone = document.querySelector("#dropZone");
+    const fileInput = document.querySelector("#fileInput");
+    const fileList = document.querySelector("#fileList");
+    const resultPanel = document.querySelector("#resultPanel");
+    const resultTitle = document.querySelector("#resultTitle");
+    const resultCopy = document.querySelector("#resultCopy");
+    const fileCount = document.querySelector("#fileCount");
+    const status = document.querySelector("#status");
+    const downloadAll = document.querySelector("#downloadAll");
+    const clearFiles = document.querySelector("#clearFiles");
+    const converter = document.querySelector(".converter");
+    const dropTitle = document.querySelector("#dropTitle");
+    const dropHelp = document.querySelector("#dropHelp");
+    const stepUpload = document.querySelector("#stepUpload");
+    const stepConvert = document.querySelector("#stepConvert");
+    const stepDownload = document.querySelector("#stepDownload");
+
+    let selectedFiles = [];
+    let invalidFiles = [];
+
+    function toZipName(fileName) {
+      return fileName.replace(/\.skill$/i, "") + ".zip";
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      const kb = bytes / 1024;
+      if (kb < 1024) return `${kb.toFixed(1)} KB`;
+      return `${(kb / 1024).toFixed(2)} MB`;
+    }
+
+    async function isZipArchive(file) {
+      const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      return signature[0] === 0x50 && signature[1] === 0x4b &&
+        (signature[2] === 0x03 || signature[2] === 0x05 || signature[2] === 0x07) &&
+        (signature[3] === 0x04 || signature[3] === 0x06 || signature[3] === 0x08);
+    }
+
+    function setStep(state) {
+      stepUpload.classList.toggle("is-active", state === "upload");
+      stepConvert.classList.toggle("is-active", state === "convert");
+      stepDownload.classList.toggle("is-active", state === "download");
+    }
+
+    function setDropCopy(state) {
+      if (state === "drag") {
+        dropTitle.textContent = "Drop to convert";
+        dropHelp.textContent = "Release your .skill files here.";
+        return;
+      }
+
+      if (state === "converted") {
+        dropTitle.textContent = "Upload more .skill files";
+        dropHelp.textContent = "Add another file or download your converted ZIP files below.";
+        return;
+      }
+
+      dropTitle.textContent = "Upload .skill files";
+      dropHelp.textContent = "Drop .skill files here or upload one or multiple files.";
+    }
+
+    async function addFiles(files) {
+      status.classList.remove("error");
+      status.textContent = "Converting...";
+      setStep("convert");
+      const allFiles = Array.from(files);
+      const incoming = allFiles.filter((file) => file.name.toLowerCase().endsWith(".skill"));
+      const wrongExtension = allFiles
+        .filter((file) => !file.name.toLowerCase().endsWith(".skill"))
+        .map((file) => ({ file, reason: "Upload .skill files only." }));
+
+      if (!incoming.length) {
+        selectedFiles = [];
+        invalidFiles = wrongExtension;
+        renderFiles();
+        status.textContent = wrongExtension.length
+          ? `${wrongExtension[0].file.name} was skipped. Upload .skill files only.`
+          : "Choose files ending in .skill.";
+        status.classList.add("error");
+        setStep("upload");
+        return;
+      }
+
+      const checked = [];
+      const invalidArchives = [];
+      for (const file of incoming) {
+        if (await isZipArchive(file)) {
+          checked.push(file);
+        } else {
+          invalidArchives.push({ file, reason: "This .skill file is not a valid ZIP archive." });
+        }
+      }
+
+      selectedFiles = checked;
+      invalidFiles = [...wrongExtension, ...invalidArchives];
+      renderFiles();
+
+      if (!checked.length) {
+        status.textContent = "No selected .skill files could be converted.";
+        status.classList.add("error");
+        setStep("upload");
+        return;
+      }
+
+      setStep("download");
+      setDropCopy("converted");
+      converter.classList.add("has-files");
+      const skipped = invalidFiles.length;
+      status.textContent = skipped
+        ? `Converted ${checked.length} file(s) to ZIP. ${skipped} file(s) need attention.`
+        : `Converted ${checked.length} file(s) to ZIP.`;
+    }
+
+    function renderFiles() {
+      fileList.innerHTML = "";
+      const totalRows = selectedFiles.length + invalidFiles.length;
+      const hasFiles = selectedFiles.length > 0;
+
+      resultPanel.classList.toggle("is-visible", totalRows > 0);
+      converter.classList.toggle("has-files", totalRows > 0);
+      resultTitle.textContent = hasFiles ? "Converted to ZIP" : "File not converted";
+      resultCopy.textContent = hasFiles
+        ? selectedFiles.length === 1
+          ? "Your ZIP is ready to download."
+          : "Your ZIP files are ready to download."
+        : "Upload a valid .skill file to continue.";
+      fileCount.textContent = `${selectedFiles.length} converted`;
+
+      for (const file of selectedFiles) {
+        const row = document.createElement("div");
+        row.className = "file-row";
+
+        const details = document.createElement("div");
+        const converted = document.createElement("div");
+        converted.className = "converted-label";
+        converted.textContent = "Converted to ZIP";
+
+        const name = document.createElement("div");
+        name.className = "file-name";
+        name.textContent = file.name;
+
+        const meta = document.createElement("div");
+        meta.className = "file-meta";
+        meta.textContent = `${formatBytes(file.size)} -> ${toZipName(file.name)}`;
+
+        const button = document.createElement("button");
+        button.className = "primary";
+        button.type = "button";
+        button.textContent = "Download ZIP";
+        button.addEventListener("click", () => {
+          downloadZip(file);
+          button.textContent = "Downloaded";
+          window.setTimeout(() => {
+            button.textContent = "Download ZIP";
+          }, 1400);
+        });
+
+        details.append(converted, name, meta);
+        row.append(details, button);
+        fileList.append(row);
+      }
+
+      for (const item of invalidFiles) {
+        const row = document.createElement("div");
+        row.className = "file-row error-row";
+
+        const details = document.createElement("div");
+        const label = document.createElement("div");
+        label.className = "converted-label error-label";
+        label.textContent = "Not converted";
+
+        const name = document.createElement("div");
+        name.className = "file-name";
+        name.textContent = item.file.name;
+
+        const meta = document.createElement("div");
+        meta.className = "file-meta";
+        meta.textContent = item.reason;
+
+        details.append(label, name, meta);
+        row.append(details);
+        fileList.append(row);
+      }
+
+      downloadAll.disabled = !hasFiles;
+      downloadAll.classList.toggle("is-visible", selectedFiles.length > 1);
+      clearFiles.disabled = totalRows === 0;
+      clearFiles.classList.toggle("is-visible", totalRows > 0);
+    }
+
+    function downloadZip(file) {
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = toZipName(file.name);
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    fileInput.addEventListener("change", (event) => addFiles(event.target.files));
+
+    downloadAll.addEventListener("click", () => {
+      for (const file of selectedFiles) {
+        downloadZip(file);
+      }
+      downloadAll.textContent = "Downloaded all";
+      window.setTimeout(() => {
+        downloadAll.textContent = "Download all ZIPs";
+      }, 1400);
+    });
+
+    clearFiles.addEventListener("click", () => {
+      selectedFiles = [];
+      invalidFiles = [];
+      fileInput.value = "";
+      renderFiles();
+      status.classList.remove("error");
+      status.textContent = "No files selected.";
+      converter.classList.remove("has-files");
+      setDropCopy("upload");
+      setStep("upload");
+    });
+
+    for (const eventName of ["dragenter", "dragover"]) {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.add("is-dragging");
+        setDropCopy("drag");
+      });
+    }
+
+    for (const eventName of ["dragleave", "drop"]) {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("is-dragging");
+        if (selectedFiles.length) {
+          setDropCopy("converted");
+        } else {
+          setDropCopy("upload");
+        }
+      });
+    }
+
+    dropZone.addEventListener("drop", (event) => addFiles(event.dataTransfer.files));
+  </script>
+</body>
+</html>
